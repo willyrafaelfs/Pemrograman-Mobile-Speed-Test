@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.Button
@@ -73,6 +74,7 @@ import com.example.speedtest.ui.theme.DownloadColor
 import com.example.speedtest.ui.theme.PingColor
 import com.example.speedtest.ui.theme.SpeedTestTheme
 import com.example.speedtest.ui.theme.UploadColor
+import com.example.speedtest.util.ShareUtils
 import com.example.speedtest.viewmodel.SpeedTestViewModel
 
 /**
@@ -117,6 +119,7 @@ fun SpeedTestScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showHistory by remember { mutableStateOf(false) }
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     if (showHistory) {
         HistoryScreen(
@@ -136,6 +139,13 @@ fun SpeedTestScreen(
                         )
                     },
                     actions = {
+                        if (uiState.phase == TestPhase.FINISHED) {
+                            IconButton(onClick = {
+                                ShareUtils.shareText(context, viewModel.getShareSummary())
+                            }) {
+                                Icon(Icons.Default.Share, contentDescription = "Share Hasil")
+                            }
+                        }
                         IconButton(onClick = { showHistory = true }) {
                             Icon(Icons.Default.History, contentDescription = "History")
                         }

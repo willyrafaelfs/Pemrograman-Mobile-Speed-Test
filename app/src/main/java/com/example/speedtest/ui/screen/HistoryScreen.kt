@@ -15,11 +15,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.material.icons.filled.FileDownload
 import com.example.speedtest.data.local.entity.SpeedTestResult
 import com.example.speedtest.ui.components.TrendChart
 import com.example.speedtest.ui.theme.DownloadColor
 import com.example.speedtest.ui.theme.PingColor
 import com.example.speedtest.ui.theme.UploadColor
+import com.example.speedtest.util.ShareUtils
 import com.example.speedtest.viewmodel.SpeedTestViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -32,6 +34,7 @@ fun HistoryScreen(
 ) {
     val history by viewModel.historyResults.collectAsState()
     var selectedTab by remember { mutableIntStateOf(1) } // Default to Download
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     Scaffold(
         topBar = {
@@ -44,6 +47,11 @@ fun HistoryScreen(
                 },
                 actions = {
                     if (history.isNotEmpty()) {
+                        IconButton(onClick = {
+                            ShareUtils.shareCsvFile(context, viewModel.getHistoryCsvContent(history))
+                        }) {
+                            Icon(Icons.Default.FileDownload, contentDescription = "Export CSV")
+                        }
                         IconButton(onClick = { viewModel.clearHistory() }) {
                             Icon(Icons.Default.Delete, contentDescription = "Hapus Semua")
                         }

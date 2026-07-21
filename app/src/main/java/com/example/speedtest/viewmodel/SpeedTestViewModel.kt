@@ -21,6 +21,9 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -158,6 +161,48 @@ class SpeedTestViewModel(
         ) return
 
         _uiState.update { it.copy(selectedServer = server) }
+    }
+
+    /**
+     * Menghasilkan teks ringkasan untuk dibagikan.
+     */
+    fun getShareSummary(): String {
+        val state = _uiState.value
+        val server = state.selectedServer?.name ?: "Unknown"
+        return """
+            🚀 Hasil Internet Speed Test
+            ---------------------------
+            📍 Server: $server
+            📶 Ping: ${state.pingResult.toInt()} ms
+            〰️ Jitter: ${state.jitterResult.toInt()} ms
+            ⬇️ Download: ${String.format("%.2f", state.downloadSpeed)} Mbps
+            ⬆️ Upload: ${String.format("%.2f", state.uploadSpeed)} Mbps
+            
+            Dites menggunakan aplikasi Android Speed Test.
+        """.trimIndent()
+    }
+
+    /**
+     * Menghasilkan konten CSV dari seluruh histori.
+     */
+    fun getHistoryCsvContent(history: List<SpeedTestResult>): String {
+        val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+        val sb = StringBuilder()
+        
+        // Header
+        sb.append("ID,Waktu,Ping(ms),Jitter(ms),Download(Mbps),Upload(Mbps)\n")
+        
+        // Data
+        history.forEach { res ->
+            sb.append("${res.id},")
+            sb.append("${sdf.format(Date(res.timestamp))},")
+            sb.append("${res.ping},")
+            sb.append("${res.jitter},")
+            sb.append("${res.download},")
+            sb.append("${res.upload}\n")
+        }
+        
+        return sb.toString()
     }
 
     private suspend fun runPingTest(server: ServerInfo) {
