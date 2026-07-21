@@ -33,7 +33,7 @@ class SpeedTestManager {
     companion object {
         // ── Konfigurasi Ping ──────────────────────────────
         private const val PING_HOST = "google.com"
-        private const val PING_COUNT = 3  // Jumlah paket ICMP yang dikirim
+        private const val PING_COUNT = 5  // Jumlah paket ICMP yang dikirim
 
         // ── Konfigurasi Download ──────────────────────────
         // File dummy ~10MB dari Cloudflare Speed Test CDN
@@ -106,9 +106,19 @@ class SpeedTestManager {
             if (rttValues.isNotEmpty()) {
                 // ── Kalkulasi Rata-rata ───────────────────────
                 // avgPing = jumlah_semua_rtt / banyak_rtt
-                // Contoh: (10.1 + 11.2 + 9.8) / 3 = 10.37 ms
                 val avgPing = rttValues.average()
-                emit(PingUpdate.Completed(avgPing))
+
+                // ── Kalkulasi Jitter ──────────────────────────
+                // Jitter = rata-rata selisih mutlak antar RTT berurutan
+                var totalDiff = 0.0
+                if (rttValues.size > 1) {
+                    for (i in 1 until rttValues.size) {
+                        totalDiff += kotlin.math.abs(rttValues[i] - rttValues[i - 1])
+                    }
+                }
+                val jitter = if (rttValues.size > 1) totalDiff / (rttValues.size - 1) else 0.0
+
+                emit(PingUpdate.Completed(avgPing, jitter))
             } else {
                 emit(PingUpdate.Error("Gagal membaca output ping"))
             }

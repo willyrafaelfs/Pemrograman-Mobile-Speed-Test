@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.NetworkPing
+import androidx.compose.material.icons.rounded.SyncAlt
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -125,38 +126,55 @@ fun ResultCard(
 @Composable
 fun ResultCardsRow(
     pingMs: Double,
+    jitterMs: Double,
     downloadMbps: Double,
     uploadMbps: Double,
     modifier: Modifier = Modifier
 ) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        ResultCard(
-            label = "PING",
-            value = if (pingMs < 0) "—" else String.format("%.0f", pingMs),
-            unit = "ms",
-            icon = Icons.Rounded.NetworkPing,
-            accentColor = PingColor,
-            modifier = Modifier.weight(1f)
-        )
-        ResultCard(
-            label = "DOWNLOAD",
-            value = if (downloadMbps < 0) "—" else String.format("%.1f", downloadMbps),
-            unit = "Mbps",
-            icon = Icons.Rounded.ArrowDownward,
-            accentColor = DownloadColor,
-            modifier = Modifier.weight(1f)
-        )
-        ResultCard(
-            label = "UPLOAD",
-            value = if (uploadMbps < 0) "—" else String.format("%.1f", uploadMbps),
-            unit = "Mbps",
-            icon = Icons.Rounded.ArrowUpward,
-            accentColor = UploadColor,
-            modifier = Modifier.weight(1f)
-        )
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            ResultCard(
+                label = "PING",
+                value = if (pingMs < 0) "—" else String.format("%.0f", pingMs),
+                unit = "ms",
+                icon = Icons.Rounded.NetworkPing,
+                accentColor = PingColor,
+                modifier = Modifier.weight(1f)
+            )
+            ResultCard(
+                label = "JITTER",
+                value = if (jitterMs < 0) "—" else String.format("%.0f", jitterMs),
+                unit = "ms",
+                icon = Icons.Rounded.SyncAlt,
+                accentColor = PingColor.copy(alpha = 0.7f),
+                modifier = Modifier.weight(1f)
+            )
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            ResultCard(
+                label = "DOWNLOAD",
+                value = if (downloadMbps < 0) "—" else String.format("%.1f", downloadMbps),
+                unit = "Mbps",
+                icon = Icons.Rounded.ArrowDownward,
+                accentColor = DownloadColor,
+                modifier = Modifier.weight(1f)
+            )
+            ResultCard(
+                label = "UPLOAD",
+                value = if (uploadMbps < 0) "—" else String.format("%.1f", uploadMbps),
+                unit = "Mbps",
+                icon = Icons.Rounded.ArrowUpward,
+                accentColor = UploadColor,
+                modifier = Modifier.weight(1f)
+            )
+        }
     }
 }
 
@@ -168,6 +186,7 @@ private fun ResultCardsPreviewDark() {
     SpeedTestTheme(darkTheme = true) {
         ResultCardsRow(
             pingMs = 12.5,
+            jitterMs = 2.4,
             downloadMbps = 45.8,
             uploadMbps = 18.3,
             modifier = Modifier.padding(16.dp)
@@ -181,6 +200,7 @@ private fun ResultCardsPreviewLight() {
     SpeedTestTheme(darkTheme = false) {
         ResultCardsRow(
             pingMs = 8.0,
+            jitterMs = 1.2,
             downloadMbps = 92.4,
             uploadMbps = 35.7,
             modifier = Modifier.padding(16.dp)

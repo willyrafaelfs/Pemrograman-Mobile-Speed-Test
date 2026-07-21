@@ -222,8 +222,9 @@ fun HistoryItem(result: SpeedTestResult) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 ResultSmall(label = "PING", value = "${result.ping.toInt()} ms")
-                ResultSmall(label = "DOWNLOAD", value = String.format("%.1f Mbps", result.download))
-                ResultSmall(label = "UPLOAD", value = String.format("%.1f Mbps", result.upload))
+                ResultSmall(label = "JITTER", value = "${result.jitter.toInt()} ms")
+                ResultSmall(label = "DOWN", value = String.format("%.1f Mbps", result.download))
+                ResultSmall(label = "UP", value = String.format("%.1f Mbps", result.upload))
             }
         }
     }

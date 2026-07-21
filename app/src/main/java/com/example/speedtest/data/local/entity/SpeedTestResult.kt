@@ -11,6 +11,7 @@ data class SpeedTestResult(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
     val ping: Double,
+    val jitter: Double = 0.0,
     val download: Double,
     val upload: Double,
     val timestamp: Long = System.currentTimeMillis()

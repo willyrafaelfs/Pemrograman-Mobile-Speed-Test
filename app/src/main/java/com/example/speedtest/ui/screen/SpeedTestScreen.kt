@@ -258,6 +258,7 @@ private fun SpeedTestContent(
         ) {
             ResultCardsRow(
                 pingMs = uiState.pingResult,
+                jitterMs = uiState.jitterResult,
                 downloadMbps = uiState.downloadSpeed,
                 uploadMbps = uiState.uploadSpeed,
                 modifier = Modifier.padding(bottom = 16.dp)

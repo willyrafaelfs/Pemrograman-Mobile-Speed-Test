@@ -10,7 +10,7 @@ import com.example.speedtest.data.local.entity.SpeedTestResult
 /**
  * Database utama aplikasi.
  */
-@Database(entities = [SpeedTestResult::class], version = 1, exportSchema = false)
+@Database(entities = [SpeedTestResult::class], version = 2, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun speedTestDao(): SpeedTestDao
 
@@ -24,7 +24,9 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "speedtest_database"
-                ).build()
+                )
+                    .fallbackToDestructiveMigration()
+                    .build()
                 INSTANCE = instance
                 instance
             }

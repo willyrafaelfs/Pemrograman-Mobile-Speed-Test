@@ -29,6 +29,7 @@ data class SpeedTestUiState(
 
     // Hasil akhir masing-masing tes
     val pingResult: Double = 0.0,       // dalam milidetik (ms)
+    val jitterResult: Double = 0.0,     // dalam milidetik (ms)
     val downloadSpeed: Double = 0.0,    // dalam Megabit per second (Mbps)
     val uploadSpeed: Double = 0.0,      // dalam Megabit per second (Mbps)
 
@@ -66,7 +67,10 @@ data class ServerInfo(
 sealed class PingUpdate {
     data object Started : PingUpdate()
     data class Progress(val rttMs: Double) : PingUpdate()
-    data class Completed(val avgRttMs: Double) : PingUpdate()
+    data class Completed(
+        val avgRttMs: Double,
+        val jitterMs: Double
+    ) : PingUpdate()
     data class Error(val message: String) : PingUpdate()
 }
 

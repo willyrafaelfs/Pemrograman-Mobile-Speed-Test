@@ -144,6 +144,7 @@ class SpeedTestViewModel(private val database: AppDatabase) : ViewModel() {
         if (state.pingResult >= 0 && state.downloadSpeed >= 0 && state.uploadSpeed >= 0) {
             val result = SpeedTestResult(
                 ping = state.pingResult,
+                jitter = state.jitterResult,
                 download = state.downloadSpeed,
                 upload = state.uploadSpeed
             )
@@ -200,10 +201,11 @@ class SpeedTestViewModel(private val database: AppDatabase) : ViewModel() {
                     }
                 }
                 is PingUpdate.Completed -> {
-                    // Simpan hasil rata-rata ping
+                    // Simpan hasil rata-rata ping dan jitter
                     _uiState.update { current ->
                         current.copy(
                             pingResult = update.avgRttMs,
+                            jitterResult = update.jitterMs,
                             currentSpeed = update.avgRttMs,
                             progress = 0.15f
                         )
