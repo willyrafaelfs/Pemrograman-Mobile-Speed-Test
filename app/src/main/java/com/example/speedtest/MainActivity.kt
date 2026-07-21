@@ -33,7 +33,7 @@ class MainActivity : ComponentActivity() {
     private val viewModel: SpeedTestViewModel by viewModels {
         object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return SpeedTestViewModel(db) as T
+                return SpeedTestViewModel(application, db) as T
             }
         }
     }

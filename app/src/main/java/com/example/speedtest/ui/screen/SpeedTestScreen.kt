@@ -31,6 +31,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -199,6 +202,11 @@ private fun SpeedTestContent(
             onChangeServerClick = { showServerSheet = true }
         )
 
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // ── Network Info ─────────────────────────────────────
+        NetworkInfoSection(networkInfo = uiState.networkInfo)
+
         // ── Gauge Section ────────────────────────────────────
         Box(
             contentAlignment = Alignment.Center,
@@ -314,6 +322,51 @@ private fun StatusText(uiState: SpeedTestUiState) {
         textAlign = TextAlign.Center,
         modifier = Modifier.alpha(alpha)
     )
+}
+
+@Composable
+private fun NetworkInfoSection(
+    networkInfo: com.example.speedtest.model.NetworkInfo,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        val (icon, color) = if (networkInfo.isConnected) {
+            when (networkInfo.type) {
+                "WiFi" -> Icons.Default.Wifi to MaterialTheme.colorScheme.primary
+                else -> Icons.Default.Public to MaterialTheme.colorScheme.primary
+            }
+        } else {
+            Icons.Default.WifiOff to MaterialTheme.colorScheme.error
+        }
+
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = color.copy(alpha = 0.8f),
+            modifier = Modifier.size(16.dp)
+        )
+        
+        Spacer(modifier = Modifier.width(6.dp))
+        
+        Text(
+            text = if (networkInfo.isConnected) {
+                "${networkInfo.type} · ${networkInfo.ipAddress}"
+            } else {
+                "Terputus dari Internet"
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = if (networkInfo.isConnected) 
+                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+            else 
+                MaterialTheme.colorScheme.error
+        )
+    }
 }
 
 @Composable

@@ -43,7 +43,19 @@ data class SpeedTestUiState(
     val errorMessage: String? = null,
 
     // Server yang sedang dipilih untuk pengetesan
-    val selectedServer: ServerInfo? = null
+    val selectedServer: ServerInfo? = null,
+
+    // Informasi jaringan saat ini
+    val networkInfo: NetworkInfo = NetworkInfo()
+)
+
+/**
+ * Model data untuk informasi jaringan.
+ */
+data class NetworkInfo(
+    val type: String = "Offline",
+    val ipAddress: String = "—",
+    val isConnected: Boolean = false
 )
 
 /**

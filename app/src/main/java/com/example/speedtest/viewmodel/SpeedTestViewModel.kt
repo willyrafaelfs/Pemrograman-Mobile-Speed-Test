@@ -1,7 +1,9 @@
 package com.example.speedtest.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.speedtest.data.NetworkMonitor
 import com.example.speedtest.data.SpeedTestManager
 import com.example.speedtest.data.local.AppDatabase
 import com.example.speedtest.data.local.entity.SpeedTestResult
@@ -14,6 +16,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -23,28 +27,15 @@ import kotlinx.coroutines.launch
  *  SpeedTestViewModel.kt
  *  ViewModel Layer: mengelola state pengujian dan menjembatani
  *  antara SpeedTestManager (data) dan UI (Composable).
- *
- *  Pola yang digunakan:
- *  - Unidirectional Data Flow (UDF)
- *  - StateFlow sebagai single source of truth
- *  - viewModelScope untuk lifecycle-aware coroutine
- *
- *  Alur data:
- *  UI (event) → ViewModel → SpeedTestManager → Flow<Update>
- *       ↑                                          │
- *       └────── StateFlow<UiState> ←──────────────┘
- * ═══════════════════════════════════════════════════════════════
- *  Author: Kukuh Yudhistiro, S.Kom., M.Kom.
  * ═══════════════════════════════════════════════════════════════
  */
-class SpeedTestViewModel(private val database: AppDatabase) : ViewModel() {
+class SpeedTestViewModel(
+    application: Application,
+    private val database: AppDatabase
+) : AndroidViewModel(application) {
 
     companion object {
         // ── Daftar server default yang bisa dipilih user ─────────
-        // Catatan: Google & OVH tidak menyediakan endpoint upload
-        // publik, sehingga uploadUrl keduanya menggunakan endpoint
-        // Cloudflare (kecepatan upload ditentukan oleh koneksi
-        // klien, bukan oleh server tujuan, sehingga hasil tetap valid).
         val AVAILABLE_SERVERS = listOf(
             ServerInfo(
                 name = "Cloudflare",
@@ -76,14 +67,12 @@ class SpeedTestViewModel(private val database: AppDatabase) : ViewModel() {
     // ── Data Layer ───────────────────────────────────────────
     private val speedTestManager = SpeedTestManager()
     private val speedTestDao = database.speedTestDao()
+    private val networkMonitor = NetworkMonitor(application)
 
     // ── State Management ─────────────────────────────────────
-    // MutableStateFlow hanya diakses internal ViewModel
     private val _uiState = MutableStateFlow(
         SpeedTestUiState(selectedServer = AVAILABLE_SERVERS.first())
     )
-
-    // Public StateFlow yang di-observe oleh UI (read-only)
     val uiState: StateFlow<SpeedTestUiState> = _uiState.asStateFlow()
 
     // Flow histori hasil tes
@@ -94,16 +83,16 @@ class SpeedTestViewModel(private val database: AppDatabase) : ViewModel() {
             initialValue = emptyList()
         )
 
-    /**
-     * Dipanggil ketika user menekan tombol "Start Test".
-     * Menjalankan tiga pengujian secara sekuensial:
-     * 1. Ping → 2. Download → 3. Upload
-     *
-     * Menggunakan viewModelScope agar coroutine otomatis
-     * di-cancel ketika ViewModel dihancurkan (lifecycle-safe).
-     */
+    init {
+        // Pantau perubahan jaringan secara real-time
+        networkMonitor.networkInfo
+            .onEach { info ->
+                _uiState.update { it.copy(networkInfo = info) }
+            }
+            .launchIn(viewModelScope)
+    }
+
     fun startSpeedTest() {
-        // Cegah multiple test berjalan bersamaan
         if (_uiState.value.phase != TestPhase.IDLE &&
             _uiState.value.phase != TestPhase.FINISHED
         ) return
@@ -111,21 +100,18 @@ class SpeedTestViewModel(private val database: AppDatabase) : ViewModel() {
         val server = _uiState.value.selectedServer ?: AVAILABLE_SERVERS.first()
 
         viewModelScope.launch {
-            // Reset state ke kondisi awal, tetap pertahankan server terpilih
             _uiState.update {
-                SpeedTestUiState(phase = TestPhase.IDLE, selectedServer = server)
+                SpeedTestUiState(
+                    phase = TestPhase.IDLE, 
+                    selectedServer = server,
+                    networkInfo = it.networkInfo
+                )
             }
 
-            // ── Tahap 1: Ping Test ──────────────────────────
             runPingTest(server)
-
-            // ── Tahap 2: Download Test ──────────────────────
             runDownloadTest(server)
-
-            // ── Tahap 3: Upload Test ────────────────────────
             runUploadTest(server)
 
-            // ── Selesai ─────────────────────────────────────
             _uiState.update { current ->
                 current.copy(
                     phase = TestPhase.FINISHED,
@@ -134,7 +120,6 @@ class SpeedTestViewModel(private val database: AppDatabase) : ViewModel() {
                 )
             }
 
-            // Simpan hasil ke database
             saveResultToHistory()
         }
     }
@@ -158,19 +143,15 @@ class SpeedTestViewModel(private val database: AppDatabase) : ViewModel() {
         }
     }
 
-    /**
-     * Reset state ke IDLE agar user bisa memulai test baru.
-     */
     fun resetTest() {
         _uiState.update { current ->
-            SpeedTestUiState(selectedServer = current.selectedServer)
+            SpeedTestUiState(
+                selectedServer = current.selectedServer,
+                networkInfo = current.networkInfo
+            )
         }
     }
 
-    /**
-     * Dipanggil ketika user memilih server baru dari daftar.
-     * Diabaikan jika sedang ada test yang berjalan.
-     */
     fun selectServer(server: ServerInfo) {
         if (_uiState.value.phase != TestPhase.IDLE &&
             _uiState.value.phase != TestPhase.FINISHED
@@ -179,29 +160,21 @@ class SpeedTestViewModel(private val database: AppDatabase) : ViewModel() {
         _uiState.update { it.copy(selectedServer = server) }
     }
 
-    // ╔═══════════════════════════════════════════════════════╗
-    // ║  Private: Menjalankan setiap fase test                 ║
-    // ╚═══════════════════════════════════════════════════════╝
-
     private suspend fun runPingTest(server: ServerInfo) {
         _uiState.update { it.copy(phase = TestPhase.TESTING_PING, progress = 0f) }
 
         speedTestManager.measurePing(server).collect { update ->
             when (update) {
-                is PingUpdate.Started -> {
-                    // Ping dimulai — UI bisa menampilkan animasi loading
-                }
+                is PingUpdate.Started -> {}
                 is PingUpdate.Progress -> {
-                    // Update ping progress — tampilkan RTT per-paket
                     _uiState.update { current ->
                         current.copy(
                             currentSpeed = update.rttMs,
-                            progress = 0.1f  // Ping = 10% dari total proses
+                            progress = 0.1f
                         )
                     }
                 }
                 is PingUpdate.Completed -> {
-                    // Simpan hasil rata-rata ping dan jitter
                     _uiState.update { current ->
                         current.copy(
                             pingResult = update.avgRttMs,
@@ -215,7 +188,7 @@ class SpeedTestViewModel(private val database: AppDatabase) : ViewModel() {
                     _uiState.update { current ->
                         current.copy(
                             errorMessage = "Ping: ${update.message}",
-                            pingResult = -1.0  // -1 menandakan error
+                            pingResult = -1.0
                         )
                     }
                 }
@@ -234,12 +207,11 @@ class SpeedTestViewModel(private val database: AppDatabase) : ViewModel() {
 
         speedTestManager.measureDownload(server).collect { update ->
             when (update) {
-                is SpeedUpdate.Started -> { /* Download dimulai */ }
+                is SpeedUpdate.Started -> {}
                 is SpeedUpdate.Progress -> {
                     _uiState.update { current ->
                         current.copy(
                             currentSpeed = update.speedMbps,
-                            // Download = 15%..65% dari total progress
                             progress = 0.15f + (0.5f * (update.totalBytes.toFloat() / 10_000_000f))
                                 .coerceAtMost(0.5f)
                         )
@@ -276,12 +248,11 @@ class SpeedTestViewModel(private val database: AppDatabase) : ViewModel() {
 
         speedTestManager.measureUpload(server).collect { update ->
             when (update) {
-                is SpeedUpdate.Started -> { /* Upload dimulai */ }
+                is SpeedUpdate.Started -> {}
                 is SpeedUpdate.Progress -> {
                     _uiState.update { current ->
                         current.copy(
                             currentSpeed = update.speedMbps,
-                            // Upload = 65%..95% dari total progress
                             progress = 0.65f + (0.3f * (update.totalBytes.toFloat() / 5_000_000f))
                                 .coerceAtMost(0.3f)
                         )
