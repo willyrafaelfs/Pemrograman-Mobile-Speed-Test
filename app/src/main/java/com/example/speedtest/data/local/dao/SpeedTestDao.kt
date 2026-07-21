@@ -19,4 +19,7 @@ interface SpeedTestDao {
 
     @Query("DELETE FROM speed_test_results")
     suspend fun clearHistory()
+
+    @Query("SELECT * FROM speed_test_results ORDER BY timestamp DESC LIMIT 1")
+    suspend fun getLatestResult(): SpeedTestResult?
 }

@@ -1,5 +1,6 @@
 package com.example.speedtest
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -50,6 +51,25 @@ class MainActivity : ComponentActivity() {
                     SpeedTestScreen(viewModel = viewModel)
                 }
             }
+        }
+        
+        handleIntent(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent?) {
+        val startFromWidget = intent?.getBooleanExtra("EXTRA_START_TEST", false) == true ||
+                intent?.let { 
+                    it.action == Intent.ACTION_VIEW && 
+                    it.hasExtra("androidx.glance.action.params") 
+                } ?: false
+        
+        if (startFromWidget) {
+            viewModel.startSpeedTest()
         }
     }
 }
