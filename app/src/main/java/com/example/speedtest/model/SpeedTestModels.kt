@@ -39,7 +39,22 @@ data class SpeedTestUiState(
     val progress: Float = 0f,
 
     // Pesan error (null jika tidak ada error)
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+
+    // Server yang sedang dipilih untuk pengetesan
+    val selectedServer: ServerInfo? = null
+)
+
+/**
+ * Model data untuk informasi server pengetesan.
+ */
+data class ServerInfo(
+    val name: String,
+    val provider: String,
+    val location: String,
+    val pingHost: String,
+    val downloadUrl: String,
+    val uploadUrl: String
 )
 
 // ──────────────────────────────────────────────────────

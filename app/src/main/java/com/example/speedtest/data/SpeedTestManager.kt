@@ -1,6 +1,7 @@
 package com.example.speedtest.data
 
 import com.example.speedtest.model.PingUpdate
+import com.example.speedtest.model.ServerInfo
 import com.example.speedtest.model.SpeedUpdate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -48,6 +49,12 @@ class SpeedTestManager {
         // ── Buffer & Timing ───────────────────────────────
         private const val BUFFER_SIZE = 8_192       // 8KB read/write buffer
         private const val EMIT_INTERVAL_MS = 150L   // Interval emit progress (ms)
+
+        // Batas maksimum data yang diunduh untuk pengukuran.
+        // Beberapa server (mis. file sample Google) berukuran jauh
+        // lebih besar dari 10MB, jadi koneksi diputus setelah cukup
+        // data terkumpul agar durasi tes tetap konsisten antar server.
+        private const val MAX_DOWNLOAD_BYTES = 15_000_000L
     }
 
     // ╔═══════════════════════════════════════════════════════╗
@@ -56,35 +63,18 @@ class SpeedTestManager {
     // ╚═══════════════════════════════════════════════════════╝
 
     /**
-     * Mengukur latency (ping) ke [PING_HOST] menggunakan ICMP ping.
+     * Mengukur latency (ping) ke server menggunakan ICMP ping.
      *
-     * Mekanisme:
-     * 1. Eksekusi command `ping -c 3 google.com` via Runtime
-     * 2. Parse setiap baris output untuk mencari "time=XX.X ms"
-     * 3. Hitung rata-rata dari semua RTT yang berhasil di-parse
-     *
-     * Contoh output `ping` yang di-parse:
-     * ```
-     * 64 bytes from 142.250.80.46: icmp_seq=1 ttl=116 time=10.1 ms
-     * 64 bytes from 142.250.80.46: icmp_seq=2 ttl=116 time=11.2 ms
-     * 64 bytes from 142.250.80.46: icmp_seq=3 ttl=116 time=9.8 ms
-     * ---
-     * rtt min/avg/max/mdev = 9.800/10.367/11.200/0.585 ms
-     * ```
-     *
-     * Regex `time=(\d+\.?\d*)\s*ms` menangkap nilai setelah "time="
-     * dan sebelum "ms". Contoh match: "time=10.1 ms" → group[1] = "10.1"
-     *
+     * @param server Informasi server target
      * @return Flow<PingUpdate> — stream update ping ke ViewModel
      */
-    fun measurePing(): Flow<PingUpdate> = flow {
+    fun measurePing(server: ServerInfo): Flow<PingUpdate> = flow {
         emit(PingUpdate.Started)
 
         try {
             // Jalankan perintah ping via subprocess
-            // -c 3 = kirim 3 paket ICMP echo request
             val process = Runtime.getRuntime()
-                .exec("ping -c $PING_COUNT $PING_HOST")
+                .exec("ping -c $PING_COUNT ${server.pingHost}")
 
             val reader = BufferedReader(
                 InputStreamReader(process.inputStream)
@@ -139,31 +129,16 @@ class SpeedTestManager {
 
     /**
      * Mengukur kecepatan download dengan mengunduh file dummy
-     * dari [DOWNLOAD_URL] dan menghitung throughput real-time.
+     * dari server dan menghitung throughput real-time.
      *
-     * ── Rumus Kalkulasi Kecepatan ─────────────────────────
-     *
-     *   elapsedSeconds = (currentNanoTime - startNanoTime) / 1.000.000.000
-     *
-     *   speedBytesPerSec = totalBytesRead / elapsedSeconds
-     *
-     *   speedMbps = (totalBytesRead × 8) / (elapsedSeconds × 1.000.000)
-     *                ↑ bytes→bits          ↑ bits→megabits
-     *
-     * Kenapa × 8?
-     *   1 byte = 8 bits. Kecepatan internet diukur dalam
-     *   bits per second (bps), bukan bytes per second (Bps).
-     *
-     * Kenapa ÷ 1.000.000?
-     *   1 Megabit = 1.000.000 bits (standar SI, bukan 1.048.576)
-     *
+     * @param server Informasi server target
      * @return Flow<SpeedUpdate> — stream kecepatan download real-time
      */
-    fun measureDownload(): Flow<SpeedUpdate> = flow {
+    fun measureDownload(server: ServerInfo): Flow<SpeedUpdate> = flow {
         emit(SpeedUpdate.Started)
 
         try {
-            val url = URL(DOWNLOAD_URL)
+            val url = URL(server.downloadUrl)
             val connection = (url.openConnection() as HttpURLConnection).apply {
                 connectTimeout = 15_000   // 15 detik timeout koneksi
                 readTimeout = 60_000      // 60 detik timeout baca
@@ -179,10 +154,14 @@ class SpeedTestManager {
             var totalBytesRead = 0L
             val startTime = System.nanoTime()
             var lastEmitTime = startTime
-            var bytesRead: Int
+            var bytesRead = 0
 
-            // Baca stream secara chunked (per 8KB)
-            while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+            // Baca stream secara chunked (per 8KB), berhenti setelah
+            // MAX_DOWNLOAD_BYTES agar tidak mengunduh seluruh file
+            // pada server dengan file berukuran sangat besar
+            while (totalBytesRead < MAX_DOWNLOAD_BYTES &&
+                inputStream.read(buffer).also { bytesRead = it } != -1
+            ) {
                 totalBytesRead += bytesRead
 
                 val currentTime = System.nanoTime()
@@ -234,26 +213,16 @@ class SpeedTestManager {
 
     /**
      * Mengukur kecepatan upload dengan mengirim dummy byte array
-     * via HTTP POST ke [UPLOAD_URL].
+     * via HTTP POST ke server.
      *
-     * Mekanisme:
-     * 1. Buat array byte dummy berukuran [UPLOAD_SIZE] (5MB)
-     * 2. Kirim secara chunked (per 8KB) ke server
-     * 3. Hitung kecepatan pengiriman secara real-time
-     *
-     * ── Rumus Kalkulasi (sama dengan download) ───────────
-     *   speedMbps = (totalBytesSent × 8) / (elapsedSeconds × 1.000.000)
-     *
-     * Catatan: Kecepatan upload biasanya lebih lambat dari download
-     * karena ISP mengalokasikan bandwidth asimetris (ADSL/fiber).
-     *
+     * @param server Informasi server target
      * @return Flow<SpeedUpdate> — stream kecepatan upload real-time
      */
-    fun measureUpload(): Flow<SpeedUpdate> = flow {
+    fun measureUpload(server: ServerInfo): Flow<SpeedUpdate> = flow {
         emit(SpeedUpdate.Started)
 
         try {
-            val url = URL(UPLOAD_URL)
+            val url = URL(server.uploadUrl)
             val connection = (url.openConnection() as HttpURLConnection).apply {
                 requestMethod = "POST"
                 doOutput = true                          // Izinkan kirim data

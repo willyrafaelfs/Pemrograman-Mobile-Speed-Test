@@ -10,6 +10,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,12 +20,16 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -33,10 +39,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -46,11 +55,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.speedtest.model.ServerInfo
 import com.example.speedtest.model.SpeedTestUiState
 import com.example.speedtest.model.TestPhase
 import com.example.speedtest.ui.components.ResultCardsRow
@@ -136,8 +147,10 @@ fun SpeedTestScreen(
         ) { paddingValues ->
             SpeedTestContent(
                 uiState = uiState,
+                availableServers = SpeedTestViewModel.AVAILABLE_SERVERS,
                 onStartTest = { viewModel.startSpeedTest() },
                 onResetTest = { viewModel.resetTest() },
+                onServerSelected = { viewModel.selectServer(it) },
                 modifier = Modifier.padding(paddingValues)
             )
         }
@@ -147,12 +160,27 @@ fun SpeedTestScreen(
 @Composable
 private fun SpeedTestContent(
     uiState: SpeedTestUiState,
+    availableServers: List<ServerInfo>,
     onStartTest: () -> Unit,
     onResetTest: () -> Unit,
+    onServerSelected: (ServerInfo) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val isTesting = uiState.phase != TestPhase.IDLE &&
             uiState.phase != TestPhase.FINISHED
+    var showServerSheet by remember { mutableStateOf(false) }
+
+    if (showServerSheet) {
+        ServerSelectionSheet(
+            servers = availableServers,
+            selectedServer = uiState.selectedServer,
+            onServerSelected = {
+                onServerSelected(it)
+                showServerSheet = false
+            },
+            onDismiss = { showServerSheet = false }
+        )
+    }
 
     Column(
         modifier = modifier
@@ -163,6 +191,13 @@ private fun SpeedTestContent(
         verticalArrangement = Arrangement.SpaceBetween
     ) {
         Spacer(modifier = Modifier.height(8.dp))
+
+        // ── Server Selection ─────────────────────────────────
+        ServerSelectionSection(
+            selectedServer = uiState.selectedServer,
+            enabled = !isTesting,
+            onChangeServerClick = { showServerSheet = true }
+        )
 
         // ── Gauge Section ────────────────────────────────────
         Box(
@@ -247,11 +282,12 @@ private fun SpeedTestContent(
 
 @Composable
 private fun StatusText(uiState: SpeedTestUiState) {
+    val serverName = uiState.selectedServer?.name ?: "server"
     val (text, pulsate) = when (uiState.phase) {
         TestPhase.IDLE -> "Siap mengukur koneksi internet" to false
-        TestPhase.TESTING_PING -> "Mengukur Ping ke google.com..." to true
-        TestPhase.TESTING_DOWNLOAD -> "Mengukur Download Speed..." to true
-        TestPhase.TESTING_UPLOAD -> "Mengukur Upload Speed..." to true
+        TestPhase.TESTING_PING -> "Mengukur Ping ke $serverName..." to true
+        TestPhase.TESTING_DOWNLOAD -> "Mengukur Download Speed dari $serverName..." to true
+        TestPhase.TESTING_UPLOAD -> "Mengukur Upload Speed ke $serverName..." to true
         TestPhase.FINISHED -> "Pengujian selesai" to false
     }
 
@@ -326,6 +362,123 @@ private fun ActionButton(
     }
 }
 
+@Composable
+private fun ServerSelectionSection(
+    selectedServer: ServerInfo?,
+    enabled: Boolean,
+    onChangeServerClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column {
+            Text(
+                text = "Server",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = selectedServer?.let { "${it.name} · ${it.location}" } ?: "Pilih server",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        TextButton(onClick = onChangeServerClick, enabled = enabled) {
+            Icon(
+                imageVector = Icons.Default.Dns,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(text = "Ganti Server")
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ServerSelectionSheet(
+    servers: List<ServerInfo>,
+    selectedServer: ServerInfo?,
+    onServerSelected: (ServerInfo) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState()
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .navigationBarsPadding()
+        ) {
+            Text(
+                text = "Pilih Server",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+
+            servers.forEach { server ->
+                ServerListItem(
+                    server = server,
+                    selected = server == selectedServer,
+                    onClick = { onServerSelected(server) }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+    }
+}
+
+@Composable
+private fun ServerListItem(
+    server: ServerInfo,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp, horizontal = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column {
+            Text(
+                text = server.name,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = server.location,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        if (selected) {
+            Icon(
+                imageVector = Icons.Default.CheckCircle,
+                contentDescription = "Server terpilih",
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
+}
+
 // ╔═══════════════════════════════════════════════════════════╗
 // ║  Helper: Resolusi nilai berdasarkan fase                  ║
 // ╚═══════════════════════════════════════════════════════════╝
@@ -390,10 +543,13 @@ private fun SpeedTestScreenPreviewDark() {
                 currentSpeed = 45.8,
                 downloadSpeed = 0.0,
                 uploadSpeed = 0.0,
-                progress = 0.45f
+                progress = 0.45f,
+                selectedServer = SpeedTestViewModel.AVAILABLE_SERVERS.first()
             ),
+            availableServers = SpeedTestViewModel.AVAILABLE_SERVERS,
             onStartTest = {},
-            onResetTest = {}
+            onResetTest = {},
+            onServerSelected = {}
         )
     }
 }
@@ -408,10 +564,13 @@ private fun SpeedTestScreenPreviewFinished() {
                 pingResult = 12.5,
                 downloadSpeed = 45.8,
                 uploadSpeed = 18.3,
-                progress = 1f
+                progress = 1f,
+                selectedServer = SpeedTestViewModel.AVAILABLE_SERVERS.first()
             ),
+            availableServers = SpeedTestViewModel.AVAILABLE_SERVERS,
             onStartTest = {},
-            onResetTest = {}
+            onResetTest = {},
+            onServerSelected = {}
         )
     }
 }
@@ -421,9 +580,13 @@ private fun SpeedTestScreenPreviewFinished() {
 private fun SpeedTestScreenPreviewIdle() {
     SpeedTestTheme(darkTheme = true) {
         SpeedTestContent(
-            uiState = SpeedTestUiState(),
+            uiState = SpeedTestUiState(
+                selectedServer = SpeedTestViewModel.AVAILABLE_SERVERS.first()
+            ),
+            availableServers = SpeedTestViewModel.AVAILABLE_SERVERS,
             onStartTest = {},
-            onResetTest = {}
+            onResetTest = {},
+            onServerSelected = {}
         )
     }
 }
