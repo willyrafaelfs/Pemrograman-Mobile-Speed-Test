@@ -28,6 +28,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
+import androidx.compose.material.icons.automirrored.filled.TrendingFlat
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Dns
@@ -38,6 +42,8 @@ import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -60,6 +66,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -286,6 +294,19 @@ private fun SpeedTestContent(
             )
         }
 
+        // ── Ringkasan Kualitas Koneksi ────────────────────────
+        AnimatedVisibility(
+            visible = uiState.phase == TestPhase.FINISHED,
+            enter = fadeIn() + slideInVertically { it / 2 },
+            exit = fadeOut()
+        ) {
+            ConnectionQualityCard(
+                pingMs = uiState.pingResult,
+                downloadMbps = uiState.downloadSpeed,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+        }
+
         Spacer(modifier = Modifier.weight(1f))
 
         // ── Action Button ────────────────────────────────────
@@ -382,6 +403,109 @@ private fun NetworkInfoSection(
                 MaterialTheme.colorScheme.error
         )
     }
+}
+
+/**
+ * Kartu ringkasan yang memberi tahu user apakah koneksinya
+ * tergolong lambat, sedang, cepat, atau sangat cepat — berdasarkan
+ * kecepatan download hasil test, plus catatan singkat soal latency.
+ */
+@Composable
+private fun ConnectionQualityCard(
+    pingMs: Double,
+    downloadMbps: Double,
+    modifier: Modifier = Modifier
+) {
+    if (downloadMbps < 0) return
+
+    val quality = resolveConnectionQuality(downloadMbps)
+    val latencyNote = resolveLatencyNote(pingMs)
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = quality.color.copy(alpha = 0.12f)
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = quality.icon,
+                contentDescription = null,
+                tint = quality.color,
+                modifier = Modifier.size(28.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column {
+                Text(
+                    text = "Koneksi Internet: ${quality.label}",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = quality.color
+                )
+                Text(
+                    text = quality.description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (latencyNote != null) {
+                    Text(
+                        text = latencyNote,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+private data class ConnectionQuality(
+    val label: String,
+    val description: String,
+    val color: Color,
+    val icon: ImageVector
+)
+
+/** Klasifikasi kecepatan koneksi berdasarkan hasil download, mengikuti kebiasaan umum ISP. */
+private fun resolveConnectionQuality(downloadMbps: Double): ConnectionQuality = when {
+    downloadMbps < 4 -> ConnectionQuality(
+        label = "Lambat",
+        description = "Cukup untuk browsing dan chat ringan",
+        color = Color(0xFFEF4444),
+        icon = Icons.AutoMirrored.Filled.TrendingDown
+    )
+    downloadMbps < 20 -> ConnectionQuality(
+        label = "Sedang",
+        description = "Cocok untuk streaming SD/HD dan video call",
+        color = Color(0xFFF59E0B),
+        icon = Icons.AutoMirrored.Filled.TrendingFlat
+    )
+    downloadMbps < 75 -> ConnectionQuality(
+        label = "Cepat",
+        description = "Cocok untuk streaming 4K dan gaming online",
+        color = Color(0xFF22C55E),
+        icon = Icons.AutoMirrored.Filled.TrendingUp
+    )
+    else -> ConnectionQuality(
+        label = "Sangat Cepat",
+        description = "Ideal untuk banyak perangkat sekaligus & gaming kompetitif",
+        color = Color(0xFF6366F1),
+        icon = Icons.Default.Bolt
+    )
+}
+
+/** Catatan tambahan soal latency, hanya ditampilkan jika cukup relevan untuk disebut. */
+private fun resolveLatencyNote(pingMs: Double): String? = when {
+    pingMs < 0 -> null
+    pingMs <= 50 -> "Ping rendah, cocok untuk gaming online"
+    pingMs <= 100 -> null
+    else -> "Ping cukup tinggi, mungkin terasa delay saat gaming/video call"
 }
 
 @Composable
