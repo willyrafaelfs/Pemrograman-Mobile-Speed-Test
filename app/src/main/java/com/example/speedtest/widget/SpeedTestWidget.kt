@@ -71,25 +71,42 @@ class SpeedTestWidget : GlanceAppWidget() {
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = GlanceModifier.defaultWeight()
                     ) {
-                        Text(text = "Down", style = TextStyle(fontSize = 10.sp))
+                        Text(
+                            text = "Down",
+                            style = TextStyle(fontSize = 10.sp, color = GlanceTheme.colors.onSurfaceVariant)
+                        )
                         Text(
                             text = String.format("%.1f", result.download),
-                            style = TextStyle(fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            style = TextStyle(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                color = GlanceTheme.colors.onSurface
+                            )
                         )
                     }
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = GlanceModifier.defaultWeight()
                     ) {
-                        Text(text = "Up", style = TextStyle(fontSize = 10.sp))
+                        Text(
+                            text = "Up",
+                            style = TextStyle(fontSize = 10.sp, color = GlanceTheme.colors.onSurfaceVariant)
+                        )
                         Text(
                             text = String.format("%.1f", result.upload),
-                            style = TextStyle(fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            style = TextStyle(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                color = GlanceTheme.colors.onSurface
+                            )
                         )
                     }
                 }
             } else {
-                Text(text = "Belum ada tes", style = TextStyle(fontSize = 12.sp))
+                Text(
+                    text = "Belum ada tes",
+                    style = TextStyle(fontSize = 12.sp, color = GlanceTheme.colors.onSurface)
+                )
             }
 
             Spacer(modifier = GlanceModifier.height(8.dp))

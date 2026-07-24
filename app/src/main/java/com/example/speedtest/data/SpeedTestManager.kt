@@ -3,6 +3,7 @@ package com.example.speedtest.data
 import com.example.speedtest.model.PingUpdate
 import com.example.speedtest.model.ServerInfo
 import com.example.speedtest.model.SpeedUpdate
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -71,9 +72,10 @@ class SpeedTestManager {
     fun measurePing(server: ServerInfo): Flow<PingUpdate> = flow {
         emit(PingUpdate.Started)
 
+        var process: Process? = null
         try {
             // Jalankan perintah ping via subprocess
-            val process = Runtime.getRuntime()
+            process = Runtime.getRuntime()
                 .exec("ping -c $PING_COUNT ${server.pingHost}")
 
             val reader = BufferedReader(
@@ -123,12 +125,17 @@ class SpeedTestManager {
                 emit(PingUpdate.Error("Gagal membaca output ping"))
             }
 
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: SecurityException) {
             // Beberapa device melarang eksekusi ping via Runtime
             // Fallback: gunakan HTTP HEAD request sebagai alternatif
             emit(PingUpdate.Error("Ping diblokir, coba metode HTTP: ${e.message}"))
         } catch (e: Exception) {
             emit(PingUpdate.Error(e.message ?: "Ping gagal"))
+        } finally {
+            // Pastikan subprocess ping dihentikan jika tes dibatalkan
+            process?.destroy()
         }
     }.flowOn(Dispatchers.IO)
 
@@ -147,6 +154,7 @@ class SpeedTestManager {
     fun measureDownload(server: ServerInfo): Flow<SpeedUpdate> = flow {
         emit(SpeedUpdate.Started)
 
+        var openConnection: HttpURLConnection? = null
         try {
             val url = URL(server.downloadUrl)
             val connection = (url.openConnection() as HttpURLConnection).apply {
@@ -156,6 +164,7 @@ class SpeedTestManager {
                 // Cloudflare memerlukan header ini untuk respons yang benar
                 setRequestProperty("Accept", "*/*")
             }
+            openConnection = connection
 
             connection.connect()
 
@@ -211,8 +220,13 @@ class SpeedTestManager {
 
             emit(SpeedUpdate.Completed(finalSpeedMbps, totalBytesRead))
 
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             emit(SpeedUpdate.Error(e.message ?: "Download test gagal"))
+        } finally {
+            // Pastikan koneksi ditutup meski tes dibatalkan di tengah unduhan
+            openConnection?.disconnect()
         }
     }.flowOn(Dispatchers.IO)
 
@@ -231,6 +245,7 @@ class SpeedTestManager {
     fun measureUpload(server: ServerInfo): Flow<SpeedUpdate> = flow {
         emit(SpeedUpdate.Started)
 
+        var openConnection: HttpURLConnection? = null
         try {
             val url = URL(server.uploadUrl)
             val connection = (url.openConnection() as HttpURLConnection).apply {
@@ -244,6 +259,7 @@ class SpeedTestManager {
                 // tanpa menunggu seluruh payload selesai ditulis
                 setFixedLengthStreamingMode(UPLOAD_SIZE)
             }
+            openConnection = connection
 
             connection.connect()
 
@@ -302,8 +318,13 @@ class SpeedTestManager {
 
             emit(SpeedUpdate.Completed(finalSpeedMbps, totalBytesSent))
 
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             emit(SpeedUpdate.Error(e.message ?: "Upload test gagal"))
+        } finally {
+            // Pastikan koneksi ditutup meski tes dibatalkan di tengah unggahan
+            openConnection?.disconnect()
         }
     }.flowOn(Dispatchers.IO)
 }

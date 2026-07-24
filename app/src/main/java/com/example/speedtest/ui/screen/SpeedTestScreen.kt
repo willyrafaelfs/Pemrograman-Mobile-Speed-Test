@@ -28,6 +28,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.History
@@ -37,7 +38,6 @@ import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -164,6 +164,7 @@ fun SpeedTestScreen(
                 availableServers = SpeedTestViewModel.AVAILABLE_SERVERS,
                 onStartTest = { viewModel.startSpeedTest() },
                 onResetTest = { viewModel.resetTest() },
+                onCancelTest = { viewModel.cancelTest() },
                 onServerSelected = { viewModel.selectServer(it) },
                 modifier = Modifier.padding(paddingValues)
             )
@@ -177,6 +178,7 @@ private fun SpeedTestContent(
     availableServers: List<ServerInfo>,
     onStartTest: () -> Unit,
     onResetTest: () -> Unit,
+    onCancelTest: () -> Unit,
     onServerSelected: (ServerInfo) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -291,6 +293,7 @@ private fun SpeedTestContent(
             phase = uiState.phase,
             onStartTest = onStartTest,
             onResetTest = onResetTest,
+            onCancelTest = onCancelTest,
             modifier = Modifier.padding(bottom = 32.dp)
         )
     }
@@ -386,6 +389,7 @@ private fun ActionButton(
     phase: TestPhase,
     onStartTest: () -> Unit,
     onResetTest: () -> Unit,
+    onCancelTest: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val isTesting = phase != TestPhase.IDLE && phase != TestPhase.FINISHED
@@ -393,29 +397,40 @@ private fun ActionButton(
 
     Button(
         onClick = {
-            if (isFinished) onResetTest()
-            else onStartTest()
+            when {
+                isTesting -> onCancelTest()
+                isFinished -> onResetTest()
+                else -> onStartTest()
+            }
         },
-        enabled = !isTesting,
         modifier = modifier
             .fillMaxWidth()
             .height(56.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.primary,
-            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+        colors = if (isTesting) {
+            ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.errorContainer
+            )
+        } else {
+            ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        }
     ) {
         if (isTesting) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(24.dp),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                strokeWidth = 2.5.dp
+            Icon(
+                imageVector = Icons.Default.Cancel,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onErrorContainer,
+                modifier = Modifier.size(20.dp)
             )
             Text(
-                text = "  Testing...",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                text = "  Batalkan Test",
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold
+                ),
+                color = MaterialTheme.colorScheme.onErrorContainer
             )
         } else {
             Text(
@@ -620,6 +635,7 @@ private fun SpeedTestScreenPreviewDark() {
             availableServers = SpeedTestViewModel.AVAILABLE_SERVERS,
             onStartTest = {},
             onResetTest = {},
+            onCancelTest = {},
             onServerSelected = {}
         )
     }
@@ -641,6 +657,7 @@ private fun SpeedTestScreenPreviewFinished() {
             availableServers = SpeedTestViewModel.AVAILABLE_SERVERS,
             onStartTest = {},
             onResetTest = {},
+            onCancelTest = {},
             onServerSelected = {}
         )
     }
@@ -657,6 +674,7 @@ private fun SpeedTestScreenPreviewIdle() {
             availableServers = SpeedTestViewModel.AVAILABLE_SERVERS,
             onStartTest = {},
             onResetTest = {},
+            onCancelTest = {},
             onServerSelected = {}
         )
     }

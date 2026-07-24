@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -87,6 +88,9 @@ class SpeedTestViewModel(
     )
     val uiState: StateFlow<SpeedTestUiState> = _uiState.asStateFlow()
 
+    // Job tes yang sedang berjalan, disimpan agar bisa dibatalkan
+    private var testJob: Job? = null
+
     // Flow histori hasil tes
     val historyResults: StateFlow<List<SpeedTestResult>> = speedTestDao.getAllResults()
         .stateIn(
@@ -111,10 +115,10 @@ class SpeedTestViewModel(
 
         val server = _uiState.value.selectedServer ?: AVAILABLE_SERVERS.first()
 
-        viewModelScope.launch {
+        testJob = viewModelScope.launch {
             _uiState.update {
                 SpeedTestUiState(
-                    phase = TestPhase.IDLE, 
+                    phase = TestPhase.IDLE,
                     selectedServer = server,
                     networkInfo = it.networkInfo
                 )
@@ -134,6 +138,18 @@ class SpeedTestViewModel(
             }
 
             saveResultToHistory()
+        }
+    }
+
+    /** Membatalkan tes yang sedang berjalan dan mengembalikan UI ke kondisi awal. */
+    fun cancelTest() {
+        testJob?.cancel()
+        testJob = null
+        _uiState.update { current ->
+            SpeedTestUiState(
+                selectedServer = current.selectedServer,
+                networkInfo = current.networkInfo
+            )
         }
     }
 
