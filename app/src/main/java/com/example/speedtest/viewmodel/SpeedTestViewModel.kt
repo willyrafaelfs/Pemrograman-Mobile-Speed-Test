@@ -59,11 +59,11 @@ class SpeedTestViewModel(
                 uploadUrl = "https://speed.cloudflare.com/__up"
             ),
             ServerInfo(
-                name = "OVH",
-                provider = "OVH",
-                location = "Roubaix, France",
-                pingHost = "ovh.net",
-                downloadUrl = "https://proof.ovh.net/files/10Mb.dat",
+                name = "Linode",
+                provider = "Linode (Akamai)",
+                location = "Singapore",
+                pingHost = "speedtest.singapore.linode.com",
+                downloadUrl = "https://speedtest.singapore.linode.com/100MB-singapore.bin",
                 uploadUrl = "https://speed.cloudflare.com/__up"
             )
         )

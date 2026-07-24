@@ -24,7 +24,7 @@ import androidx.core.view.WindowCompat
  * ═══════════════════════════════════════════════════════════════
  */
 
-private val DarkColorScheme = darkColorScheme(
+val DarkColorScheme = darkColorScheme(
     primary = CyanPrimary,
     onPrimary = Color.White,
     primaryContainer = CyanPrimaryDark,
@@ -40,7 +40,7 @@ private val DarkColorScheme = darkColorScheme(
     outline = DarkSurfaceVariant
 )
 
-private val LightColorScheme = lightColorScheme(
+val LightColorScheme = lightColorScheme(
     primary = CyanPrimaryDark,
     onPrimary = Color.White,
     primaryContainer = CyanLight,

@@ -11,6 +11,7 @@ import androidx.glance.action.ActionParameters
 import androidx.glance.action.actionParametersOf
 import androidx.glance.action.actionStartActivity
 import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.layout.Alignment
@@ -21,12 +22,15 @@ import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
+import androidx.glance.material3.ColorProviders
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import com.example.speedtest.MainActivity
 import com.example.speedtest.data.local.AppDatabase
 import com.example.speedtest.data.local.entity.SpeedTestResult
+import com.example.speedtest.ui.theme.DarkColorScheme
+import com.example.speedtest.ui.theme.LightColorScheme
 
 class SpeedTestWidget : GlanceAppWidget() {
 
@@ -35,7 +39,11 @@ class SpeedTestWidget : GlanceAppWidget() {
         val latestResult = db.speedTestDao().getLatestResult()
 
         provideContent {
-            GlanceTheme {
+            // Pakai palet warna solid milik aplikasi sendiri (bukan warna
+            // dinamis dari wallpaper) agar tidak terlihat seperti widget
+            // "glass"/transparan ala iOS — tampilan tetap konsisten dengan
+            // brand cyan/dark aplikasi.
+            GlanceTheme(colors = ColorProviders(light = LightColorScheme, dark = DarkColorScheme)) {
                 WidgetContent(latestResult)
             }
         }
@@ -47,6 +55,7 @@ class SpeedTestWidget : GlanceAppWidget() {
             modifier = GlanceModifier
                 .fillMaxSize()
                 .background(GlanceTheme.colors.surface)
+                .cornerRadius(20.dp)
                 .padding(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalAlignment = Alignment.CenterVertically
