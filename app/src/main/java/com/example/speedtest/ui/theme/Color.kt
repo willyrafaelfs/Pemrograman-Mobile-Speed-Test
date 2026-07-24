@@ -43,5 +43,6 @@ val TextOnLightSecondary = Color(0xFF64748B)
 
 // ── Status Colors ────────────────────────────────────────────
 val PingColor = Color(0xFFF97316)      // Orange untuk Ping
+val JitterColor = Color(0xFFEAB308)    // Kuning/Amber untuk Jitter
 val DownloadColor = Color(0xFF06B6D4)  // Cyan untuk Download
 val UploadColor = Color(0xFF8B5CF6)    // Purple untuk Upload

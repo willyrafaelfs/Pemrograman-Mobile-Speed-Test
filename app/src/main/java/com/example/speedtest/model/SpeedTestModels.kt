@@ -16,6 +16,7 @@ package com.example.speedtest.model
 enum class TestPhase {
     IDLE,               // Belum dimulai / menunggu tombol ditekan
     TESTING_PING,       // Sedang mengukur latency (ping)
+    TESTING_JITTER,     // Sedang menampilkan hasil jitter
     TESTING_DOWNLOAD,   // Sedang mengukur kecepatan download
     TESTING_UPLOAD,     // Sedang mengukur kecepatan upload
     FINISHED            // Semua pengujian selesai

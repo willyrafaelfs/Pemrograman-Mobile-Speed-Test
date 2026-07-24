@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -65,6 +66,14 @@ class SpeedTestViewModel(
                 uploadUrl = "https://speed.cloudflare.com/__up"
             )
         )
+
+        // ── Jeda animasi gauge saat berpindah antar fase ──────────
+        // Nilai ini disamakan dengan durasi tween di SpeedGauge (600ms)
+        // agar jarum sempat terlihat turun kembali ke 0 sebelum
+        // fase berikutnya dimulai.
+        private const val GAUGE_SETTLE_DELAY_MS = 650L
+        private const val JITTER_REVEAL_DELAY_MS = 200L
+        private const val JITTER_HOLD_DELAY_MS = 700L
     }
 
     // ── Data Layer ───────────────────────────────────────────
@@ -111,7 +120,8 @@ class SpeedTestViewModel(
                 )
             }
 
-            runPingTest(server)
+            val jitterValue = runPingTest(server)
+            runJitterPhase(jitterValue)
             runDownloadTest(server)
             runUploadTest(server)
 
@@ -205,8 +215,16 @@ class SpeedTestViewModel(
         return sb.toString()
     }
 
-    private suspend fun runPingTest(server: ServerInfo) {
-        _uiState.update { it.copy(phase = TestPhase.TESTING_PING, progress = 0f) }
+    /** Menurunkan jarum gauge ke 0 dan menahannya sejenak agar terlihat oleh user. */
+    private suspend fun settleGaugeToZero() {
+        _uiState.update { it.copy(currentSpeed = 0.0) }
+        delay(GAUGE_SETTLE_DELAY_MS)
+    }
+
+    private suspend fun runPingTest(server: ServerInfo): Double {
+        _uiState.update { it.copy(phase = TestPhase.TESTING_PING, progress = 0f, currentSpeed = 0.0) }
+
+        var jitterValue = 0.0
 
         speedTestManager.measurePing(server).collect { update ->
             when (update) {
@@ -220,12 +238,12 @@ class SpeedTestViewModel(
                     }
                 }
                 is PingUpdate.Completed -> {
+                    jitterValue = update.jitterMs
                     _uiState.update { current ->
                         current.copy(
                             pingResult = update.avgRttMs,
-                            jitterResult = update.jitterMs,
                             currentSpeed = update.avgRttMs,
-                            progress = 0.15f
+                            progress = 0.12f
                         )
                     }
                 }
@@ -239,6 +257,32 @@ class SpeedTestViewModel(
                 }
             }
         }
+
+        // Tahan hasil ping sejenak, lalu turunkan jarum ke 0
+        // sebelum berpindah ke fase Jitter
+        delay(JITTER_REVEAL_DELAY_MS)
+        settleGaugeToZero()
+
+        return jitterValue
+    }
+
+    private suspend fun runJitterPhase(jitterValue: Double) {
+        _uiState.update { current ->
+            current.copy(phase = TestPhase.TESTING_JITTER, progress = 0.15f, currentSpeed = 0.0)
+        }
+
+        // Jeda kecil agar transisi fase terlihat sebelum jarum bergerak
+        delay(JITTER_REVEAL_DELAY_MS)
+
+        _uiState.update { current ->
+            current.copy(jitterResult = jitterValue, currentSpeed = jitterValue, progress = 0.2f)
+        }
+
+        // Tahan nilai jitter agar sempat terbaca oleh user
+        delay(JITTER_HOLD_DELAY_MS)
+
+        // Turunkan jarum ke 0 sebelum berpindah ke fase Download
+        settleGaugeToZero()
     }
 
     private suspend fun runDownloadTest(server: ServerInfo) {
@@ -246,7 +290,7 @@ class SpeedTestViewModel(
             current.copy(
                 phase = TestPhase.TESTING_DOWNLOAD,
                 currentSpeed = 0.0,
-                progress = 0.15f
+                progress = 0.2f
             )
         }
 
@@ -257,7 +301,7 @@ class SpeedTestViewModel(
                     _uiState.update { current ->
                         current.copy(
                             currentSpeed = update.speedMbps,
-                            progress = 0.15f + (0.5f * (update.totalBytes.toFloat() / 10_000_000f))
+                            progress = 0.2f + (0.5f * (update.totalBytes.toFloat() / 10_000_000f))
                                 .coerceAtMost(0.5f)
                         )
                     }
@@ -266,7 +310,8 @@ class SpeedTestViewModel(
                     _uiState.update { current ->
                         current.copy(
                             downloadSpeed = update.finalSpeedMbps,
-                            progress = 0.65f
+                            currentSpeed = update.finalSpeedMbps,
+                            progress = 0.7f
                         )
                     }
                 }
@@ -280,6 +325,9 @@ class SpeedTestViewModel(
                 }
             }
         }
+
+        // Turunkan jarum ke 0 sebelum berpindah ke fase Upload
+        settleGaugeToZero()
     }
 
     private suspend fun runUploadTest(server: ServerInfo) {
@@ -287,7 +335,7 @@ class SpeedTestViewModel(
             current.copy(
                 phase = TestPhase.TESTING_UPLOAD,
                 currentSpeed = 0.0,
-                progress = 0.65f
+                progress = 0.7f
             )
         }
 
@@ -298,8 +346,8 @@ class SpeedTestViewModel(
                     _uiState.update { current ->
                         current.copy(
                             currentSpeed = update.speedMbps,
-                            progress = 0.65f + (0.3f * (update.totalBytes.toFloat() / 5_000_000f))
-                                .coerceAtMost(0.3f)
+                            progress = 0.7f + (0.25f * (update.totalBytes.toFloat() / 5_000_000f))
+                                .coerceAtMost(0.25f)
                         )
                     }
                 }
@@ -307,6 +355,7 @@ class SpeedTestViewModel(
                     _uiState.update { current ->
                         current.copy(
                             uploadSpeed = update.finalSpeedMbps,
+                            currentSpeed = update.finalSpeedMbps,
                             progress = 0.95f
                         )
                     }
@@ -321,5 +370,8 @@ class SpeedTestViewModel(
                 }
             }
         }
+
+        // Turunkan jarum ke 0 setelah semua tes selesai
+        settleGaugeToZero()
     }
 }

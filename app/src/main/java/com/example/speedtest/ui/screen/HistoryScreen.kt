@@ -17,8 +17,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material.icons.filled.FileDownload
 import com.example.speedtest.data.local.entity.SpeedTestResult
+import com.example.speedtest.ui.components.ChartPoint
 import com.example.speedtest.ui.components.TrendChart
 import com.example.speedtest.ui.theme.DownloadColor
+import com.example.speedtest.ui.theme.JitterColor
 import com.example.speedtest.ui.theme.PingColor
 import com.example.speedtest.ui.theme.UploadColor
 import com.example.speedtest.util.ShareUtils
@@ -33,7 +35,7 @@ fun HistoryScreen(
     onBack: () -> Unit
 ) {
     val history by viewModel.historyResults.collectAsState()
-    var selectedTab by remember { mutableIntStateOf(1) } // Default to Download
+    var selectedTab by remember { mutableIntStateOf(2) } // Default to Download
     val context = androidx.compose.ui.platform.LocalContext.current
 
     Scaffold(
@@ -123,18 +125,20 @@ fun TrendSection(
     selectedTab: Int,
     onTabSelected: (Int) -> Unit
 ) {
-    val chartData = remember(history, selectedTab) {
+    val chartPoints = remember(history, selectedTab) {
         val reversed = history.reversed().takeLast(10) // Show last 10 tests
         when (selectedTab) {
-            0 -> reversed.map { it.ping }
-            1 -> reversed.map { it.download }
-            else -> reversed.map { it.upload }
+            0 -> reversed.map { ChartPoint(value = it.ping, result = it) }
+            1 -> reversed.map { ChartPoint(value = it.jitter, result = it) }
+            2 -> reversed.map { ChartPoint(value = it.download, result = it) }
+            else -> reversed.map { ChartPoint(value = it.upload, result = it) }
         }
     }
 
     val chartColor = when (selectedTab) {
         0 -> PingColor
-        1 -> DownloadColor
+        1 -> JitterColor
+        2 -> DownloadColor
         else -> UploadColor
     }
 
@@ -165,8 +169,14 @@ fun TrendSection(
                     )
                 }
             } else {
+                Text(
+                    "Ketuk titik untuk melihat detail tes",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline
+                )
+                Spacer(modifier = Modifier.height(4.dp))
                 TrendChart(
-                    data = chartData,
+                    points = chartPoints,
                     lineColor = chartColor,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -189,7 +199,7 @@ fun TrendSection(
                     }
                 }
             ) {
-                listOf("Ping", "Down", "Up").forEachIndexed { index, label ->
+                listOf("Ping", "Jitter", "Down", "Up").forEachIndexed { index, label ->
                     Tab(
                         selected = selectedTab == index,
                         onClick = { onTabSelected(index) },

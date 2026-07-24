@@ -71,6 +71,7 @@ import com.example.speedtest.model.TestPhase
 import com.example.speedtest.ui.components.ResultCardsRow
 import com.example.speedtest.ui.components.SpeedGauge
 import com.example.speedtest.ui.theme.DownloadColor
+import com.example.speedtest.ui.theme.JitterColor
 import com.example.speedtest.ui.theme.PingColor
 import com.example.speedtest.ui.theme.SpeedTestTheme
 import com.example.speedtest.ui.theme.UploadColor
@@ -305,6 +306,7 @@ private fun StatusText(uiState: SpeedTestUiState) {
     val (text, pulsate) = when (uiState.phase) {
         TestPhase.IDLE -> "Siap mengukur koneksi internet" to false
         TestPhase.TESTING_PING -> "Mengukur Ping ke $serverName..." to true
+        TestPhase.TESTING_JITTER -> "Mengukur Jitter..." to true
         TestPhase.TESTING_DOWNLOAD -> "Mengukur Download Speed dari $serverName..." to true
         TestPhase.TESTING_UPLOAD -> "Mengukur Upload Speed ke $serverName..." to true
         TestPhase.FINISHED -> "Pengujian selesai" to false
@@ -552,17 +554,19 @@ private fun resolveGaugeSpeed(state: SpeedTestUiState): Float {
     return when (state.phase) {
         TestPhase.IDLE -> 0f
         TestPhase.TESTING_PING -> state.currentSpeed.toFloat()
+        TestPhase.TESTING_JITTER -> state.currentSpeed.toFloat()
         TestPhase.TESTING_DOWNLOAD -> state.currentSpeed.toFloat()
         TestPhase.TESTING_UPLOAD -> state.currentSpeed.toFloat()
         TestPhase.FINISHED -> 0f
     }
 }
 
-/** Max speed berbeda untuk ping (ms) vs download/upload (Mbps) */
+/** Max speed berbeda untuk ping/jitter (ms) vs download/upload (Mbps) */
 private fun resolveMaxSpeed(state: SpeedTestUiState): Float {
     return when (state.phase) {
-        TestPhase.TESTING_PING -> 200f   // Max ping 200ms
-        else -> 150f                      // Max speed 150 Mbps
+        TestPhase.TESTING_PING -> 200f    // Max ping 200ms
+        TestPhase.TESTING_JITTER -> 50f   // Max jitter 50ms
+        else -> 150f                       // Max speed 150 Mbps
     }
 }
 
@@ -571,6 +575,7 @@ private fun resolvePhaseLabel(state: SpeedTestUiState): String {
     return when (state.phase) {
         TestPhase.IDLE -> ""
         TestPhase.TESTING_PING -> "Ping"
+        TestPhase.TESTING_JITTER -> "Jitter"
         TestPhase.TESTING_DOWNLOAD -> "Download"
         TestPhase.TESTING_UPLOAD -> "Upload"
         TestPhase.FINISHED -> ""
@@ -581,6 +586,7 @@ private fun resolvePhaseLabel(state: SpeedTestUiState): String {
 private fun resolveUnitLabel(state: SpeedTestUiState): String {
     return when (state.phase) {
         TestPhase.TESTING_PING -> "ms"
+        TestPhase.TESTING_JITTER -> "ms"
         else -> "Mbps"
     }
 }
@@ -589,6 +595,7 @@ private fun resolveUnitLabel(state: SpeedTestUiState): String {
 @Composable
 private fun resolvePhaseColor(state: SpeedTestUiState) = when (state.phase) {
     TestPhase.TESTING_PING -> PingColor
+    TestPhase.TESTING_JITTER -> JitterColor
     TestPhase.TESTING_DOWNLOAD -> DownloadColor
     TestPhase.TESTING_UPLOAD -> UploadColor
     else -> MaterialTheme.colorScheme.primary

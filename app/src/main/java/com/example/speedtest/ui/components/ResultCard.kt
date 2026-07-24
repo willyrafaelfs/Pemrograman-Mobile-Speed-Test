@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.speedtest.ui.theme.DownloadColor
+import com.example.speedtest.ui.theme.JitterColor
 import com.example.speedtest.ui.theme.PingColor
 import com.example.speedtest.ui.theme.SpeedTestTheme
 import com.example.speedtest.ui.theme.UploadColor
@@ -149,7 +150,7 @@ fun ResultCardsRow(
                 value = if (jitterMs < 0) "—" else String.format("%.0f", jitterMs),
                 unit = "ms",
                 icon = Icons.Rounded.SyncAlt,
-                accentColor = PingColor.copy(alpha = 0.7f),
+                accentColor = JitterColor,
                 modifier = Modifier.weight(1f)
             )
         }
