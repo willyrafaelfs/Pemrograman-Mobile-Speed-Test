@@ -1,15 +1,15 @@
 # Screenshots
 
-Taruh screenshot aplikasi di folder ini dengan nama file berikut agar otomatis muncul di README utama:
+Screenshot berikut diambil langsung dari emulator Android (API terbaru, tema gelap):
 
-| File | Fitur |
-|---|---|
-| `01_home_idle.png` | Layar utama sebelum test dimulai |
-| `02_testing.png` | Gauge saat proses pengujian berlangsung |
-| `03_result.png` | Kartu hasil setelah test selesai |
-| `04_server_selection.png` | Bottom sheet pilihan server |
-| `05_history_chart.png` | Layar riwayat & grafik tren |
-| `06_share_export.png` | Share hasil / export CSV |
-| `07_widget.png` | Home screen widget |
+| File | Fitur | Status |
+|---|---|---|
+| `01_home_idle.png` | Layar utama sebelum test dimulai | ✅ |
+| `02_testing.png` | Gauge saat proses pengujian berlangsung (fase Upload + tombol Batalkan Test) | ✅ |
+| `03_result.png` | Kartu hasil setelah test selesai, termasuk ringkasan Kualitas Koneksi | ✅ |
+| `04_server_selection.png` | Bottom sheet pilihan server (Cloudflare/Google/Linode) | ✅ |
+| `05_history_chart.png` | Grafik tren dengan titik yang diketuk menampilkan detail riwayat | ✅ |
+| `06_share_export.png` | Share sheet Android saat export CSV riwayat | ✅ |
+| `07_widget.png` | Home screen widget | ⬜ belum — perlu ditambahkan manual (drag widget "Speed Test" ke home screen lalu screenshot; tidak bisa diotomatisasi lewat ADB karena butuh gesture drag-and-drop asli) |
 
-Format PNG atau JPG, disarankan diambil langsung dari device/emulator (tekan tombol screenshot bawaan Android).
+Format PNG, diambil langsung dari device/emulator (tombol screenshot bawaan Android).

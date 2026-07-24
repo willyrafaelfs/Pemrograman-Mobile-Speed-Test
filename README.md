@@ -60,7 +60,7 @@ Aplikasi ini mengukur empat parameter koneksi internet ke server pilihan user:
 
 ## Screenshot Fitur
 
-> 📌 Gambar di bawah adalah placeholder. Ganti file di folder [`screenshots/`](screenshots) dengan screenshot asli dari aplikasi yang sudah dijalankan (nama file mengikuti tabel di bawah), lalu commit ulang agar tampil di README ini.
+> 📌 Screenshot di bawah diambil langsung dari emulator. Satu yang belum ada (Home Screen Widget) perlu ditambahkan manual ke folder [`screenshots/`](screenshots) — lihat `screenshots/README.md` untuk detail nama file yang masih kurang.
 
 <table>
   <thead>
