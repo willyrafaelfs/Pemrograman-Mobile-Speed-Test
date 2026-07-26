@@ -5,6 +5,8 @@
 > **Mata Kuliah:** Pemrograman Mobile Android — Semester 6
 > **Tech Stack:** Kotlin • Jetpack Compose • Material 3 • Coroutines/Flow • MVVM • Room • Glance (App Widget)
 
+[![Download APK](https://img.shields.io/badge/Download-APK-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://github.com/willyrafaelfs/Pemrograman-Mobile-Speed-Test/releases/download/v1.0/SpeedTest-v1.0-debug.apk)
+
 ---
 
 ## 👤 Identitas Mahasiswa
@@ -22,15 +24,16 @@
 ## Daftar Isi
 
 1. [Gambaran Umum](#gambaran-umum)
-2. [Screenshot Fitur](#screenshot-fitur)
-3. [Arsitektur & Struktur Project](#arsitektur--struktur-project)
-4. [Prasyarat](#-prasyarat)
-5. [Panduan Setup](#panduan-setup)
-6. [Penjelasan Komponen Utama](#-penjelasan-komponen-utama)
-7. [Cara Kerja Pengukuran](#cara-kerja-pengukuran)
-8. [Customization & Pengembangan Lanjutan](#-customization--pengembangan-lanjutan)
-9. [Troubleshooting](#-troubleshooting)
-10. [Lisensi](#-lisensi)
+2. [Download APK](#-download-apk)
+3. [Screenshot Fitur](#screenshot-fitur)
+4. [Arsitektur & Struktur Project](#arsitektur--struktur-project)
+5. [Prasyarat](#-prasyarat)
+6. [Panduan Setup](#panduan-setup)
+7. [Penjelasan Komponen Utama](#-penjelasan-komponen-utama)
+8. [Cara Kerja Pengukuran](#cara-kerja-pengukuran)
+9. [Customization & Pengembangan Lanjutan](#-customization--pengembangan-lanjutan)
+10. [Troubleshooting](#-troubleshooting)
+11. [Lisensi](#-lisensi)
 
 ---
 
@@ -55,6 +58,18 @@ Aplikasi ini mengukur empat parameter koneksi internet ke server pilihan user:
 - ✅ **Share & Export** — bagikan ringkasan hasil test sebagai teks, atau export seluruh riwayat ke file CSV
 - ✅ **Home Screen Widget** — menampilkan hasil test terakhir langsung dari home screen, dengan tombol mulai test cepat
 - ✅ **Material 3 Design** — mendukung Light & Dark theme secara otomatis
+
+---
+
+## 📲 Download APK
+
+Ingin coba langsung tanpa build dari source? Unduh APK dari [GitHub Releases](https://github.com/willyrafaelfs/Pemrograman-Mobile-Speed-Test/releases/tag/v1.0):
+
+| Versi | Link |
+|-------|------|
+| **v1.0** (debug) | [SpeedTest-v1.0-debug.apk](https://github.com/willyrafaelfs/Pemrograman-Mobile-Speed-Test/releases/download/v1.0/SpeedTest-v1.0-debug.apk) |
+
+> ⚠️ Ini adalah build **debug** (belum di-sign untuk rilis production). Saat instalasi, aktifkan **"Install dari sumber tidak dikenal"** di pengaturan Android jika diminta.
 
 ---
 
